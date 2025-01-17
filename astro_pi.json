@@ -1,0 +1,34 @@
+{ 
+
+   "app": {
+   
+   "title": "ASTRO_PI",
+   "version": "0.9.0",
+   "supplier": "Open STEMware",
+   "copyright": "bitValence",
+   "url": "https://github.com/cfs-apps/astro_pi",
+
+   "description": [
+      "Provides a ground interface allowing",
+      "users to run ESA's Astro Pi project",
+      "exercises on a cFS target."
+   ],
+
+   "cfs": {
+      "cfe-type": "CFE_APP",
+      "obj-file": "astro_pi",
+      "entry-symbol": "ASTRO_PI_AppMain",
+      "name": "ASTRO_PI",
+      "priority": 70,
+      "stack": 32768,
+      "load_addr": 0,
+      "exception-action": 0,
+      "app-framework": "osk",
+      "tables": ["astro_pi_ini.json"]
+   },
+
+   "requires": ["app_c_fw", "jmsg_lib", "jmsg_app", "jmsg_udp"]
+
+}}
+
+

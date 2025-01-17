@@ -1,0 +1,18 @@
+{
+   "title": "Astro Pi initialization file",
+   "description": ["Define runtime configurations"],
+   "config": {
+      
+      "APP_CFE_NAME":     "ASTRO_PI",      
+      "APP_MAIN_PERF_ID": 91,
+      
+      "ASTRO_PI_CMD_TOPICID" : 0,
+      "ASTRO_PI_STATUS_TLM_TOPICID": 0,
+      "ASTRO_PI_SCRIPT_TLM_TOPICID": 0,
+      "BC_SCH_2_SEC_TOPICID": 0,
+      
+      "CMD_PIPE_NAME":  "ASTRO_PI",
+      "CMD_PIPE_DEPTH": 5
+   
+   }
+}
