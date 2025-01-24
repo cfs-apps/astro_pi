@@ -13,15 +13,15 @@
 ** GNU Affero General Public License for more details.
 **
 ** Purpose:
-**   Manage Astro Pi python scripts  
+**   Manage sending python scripts to the Astro Pi  
 **
 ** Notes:
 **   None
 **
 */
 
-#ifndef _astro_py_
-#define _astro_py_
+#ifndef _py_script_
+#define _py_script_
 
 /*
 ** Includes
@@ -38,9 +38,10 @@
 ** Event Message IDs
 */
 
-#define ASTRO_PY_READ_SCRIPT_FILE_EID      (ASTRO_PY_BASE_EID + 0)
-#define ASTRO_PY_SEND_SCRIPT_CMD_EID       (ASTRO_PY_BASE_EID + 1)
-#define ASTRO_PY_SEND_TEST_SCRIPT_CMD_EID  (ASTRO_PY_BASE_EID + 2)
+#define PY_SCRIPT_READ_FILE_EID         (PY_SCRIPT_BASE_EID + 0)
+#define PY_SCRIPT_SEND_LOCAL_CMD_EID    (PY_SCRIPT_BASE_EID + 1)
+#define PY_SCRIPT_SEND_TEST_CMD_EID     (PY_SCRIPT_BASE_EID + 2)
+#define PY_SCRIPT_START_REMOTE_CMD_EID  (PY_SCRIPT_BASE_EID + 3)
 
 
 /**********************/
@@ -50,10 +51,10 @@
 typedef struct
 {
    
-   uint32   SentScriptCnt;
-   char     LastSentScript[OS_MAX_PATH_LEN];
+   uint32   SentCnt;
+   char     LastSent[OS_MAX_PATH_LEN];
 
-} ASTRO_PY_Class_t;
+} PY_SCRIPT_Class_t;
 
 
 /************************/
@@ -62,36 +63,43 @@ typedef struct
 
 
 /******************************************************************************
-** Function: ASTRO_PY_Constructor
+** Function: PY_SCRIPT_Constructor
 **
 ** Notes:
 **   1. This must be called prior to any other member functions.
 **
 */
-void ASTRO_PY_Constructor(ASTRO_PY_Class_t *UdpMgrPtr, uint32 PyScriptTlmTopicId);
+void PY_SCRIPT_Constructor(PY_SCRIPT_Class_t *PyScriptPtr, uint32 PyScriptTlmTopicId);
 
 
 /******************************************************************************
-** Function: ASTRO_PY_ResetStatus
+** Function: PY_SCRIPT_ResetStatus
 **
 ** Reset counters and status flags to a known reset state.
 **
 */
-void ASTRO_PY_ResetStatus(void);
+void PY_SCRIPT_ResetStatus(void);
 
 
 /******************************************************************************
-** Function: ASTRO_PY_SendScriptCmd
+** Function: PY_SCRIPT_SendLocalCmd
 **
 */
-bool ASTRO_PY_SendScriptCmd(void *DataObjPtr, const CFE_MSG_Message_t *MsgPtr);
+bool PY_SCRIPT_SendLocalCmd(void *DataObjPtr, const CFE_MSG_Message_t *MsgPtr);
 
 
 /******************************************************************************
-** Function: ASTRO_PY_SendTestScriptCmd
+** Function: PY_SCRIPT_SendTestCmd
 **
 */
-bool ASTRO_PY_SendTestScriptCmd(void *DataObjPtr, const CFE_MSG_Message_t *MsgPtr);
+bool PY_SCRIPT_SendTestCmd(void *DataObjPtr, const CFE_MSG_Message_t *MsgPtr);
 
 
-#endif /* _astro_py_ */
+/******************************************************************************
+** Function: PY_SCRIPT_StartRemoteCmd
+**
+*/
+bool PY_SCRIPT_StartRemoteCmd(void *DataObjPtr, const CFE_MSG_Message_t *MsgPtr);
+
+
+#endif /* _py_script_ */

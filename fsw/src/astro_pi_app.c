@@ -35,7 +35,7 @@
 /* Convenience macros */
 #define  INITBL_OBJ      (&(AstroPiApp.IniTbl))
 #define  CMDMGR_OBJ      (&(AstroPiApp.CmdMgr))
-#define  ASTRO_PY_OBJ    (&(AstroPiApp.AstroPy))
+#define  PY_SCRIPT_OBJ   (&(AstroPiApp.PyScript))
 
 /*******************************/
 /** Local Function Prototypes **/
@@ -142,7 +142,7 @@ bool ASTRO_PI_APP_ResetAppCmd(void *ObjDataPtr, const CFE_MSG_Message_t *MsgPtr)
 
    CMDMGR_ResetStatus(CMDMGR_OBJ);
    
-   ASTRO_PY_ResetStatus();
+   PY_SCRIPT_ResetStatus();
 	  
    return true;
 
@@ -169,7 +169,7 @@ static int32 InitApp(void)
       AstroPiApp.PerfId = INITBL_GetIntConfig(INITBL_OBJ, CFG_APP_MAIN_PERF_ID);
       CFE_ES_PerfLogEntry(AstroPiApp.PerfId);
 
-      ASTRO_PY_Constructor(ASTRO_PY_OBJ, INITBL_GetIntConfig(INITBL_OBJ, CFG_ASTRO_PI_SCRIPT_TLM_TOPICID));
+      PY_SCRIPT_Constructor(PY_SCRIPT_OBJ, INITBL_GetIntConfig(INITBL_OBJ, CFG_JMSG_LIB_EXEC_SCRIPT_TLM_TOPICID));
 
       AstroPiApp.CmdMid         = CFE_SB_ValueToMsgId(INITBL_GetIntConfig(INITBL_OBJ, CFG_ASTRO_PI_CMD_TOPICID));
       AstroPiApp.SendStatusMid  = CFE_SB_ValueToMsgId(INITBL_GetIntConfig(INITBL_OBJ, CFG_SEND_STATUS_TLM_TOPICID));
@@ -187,9 +187,10 @@ static int32 InitApp(void)
       CMDMGR_RegisterFunc(CMDMGR_OBJ, ASTRO_PI_NOOP_CC,  NULL, ASTRO_PI_APP_NoOpCmd,     0);
       CMDMGR_RegisterFunc(CMDMGR_OBJ, ASTRO_PI_RESET_CC, NULL, ASTRO_PI_APP_ResetAppCmd, 0);
       
-      CMDMGR_RegisterFunc(CMDMGR_OBJ, ASTRO_PI_SEND_TEST_SCRIPT_CC, NULL, ASTRO_PY_SendTestScriptCmd, 0);
-      CMDMGR_RegisterFunc(CMDMGR_OBJ, ASTRO_PI_SEND_SCRIPT_CC,      NULL, ASTRO_PY_SendScriptCmd, sizeof(ASTRO_PI_SendScript_CmdPayload_t));
-         
+      CMDMGR_RegisterFunc(CMDMGR_OBJ, ASTRO_PI_SEND_TEST_SCRIPT_CC,    NULL, PY_SCRIPT_SendTestCmd,    0);
+      CMDMGR_RegisterFunc(CMDMGR_OBJ, ASTRO_PI_SEND_LOCAL_SCRIPT_CC,   NULL, PY_SCRIPT_SendLocalCmd,   sizeof(ASTRO_PI_SendLocalScript_CmdPayload_t));
+      CMDMGR_RegisterFunc(CMDMGR_OBJ, ASTRO_PI_START_REMOTE_SCRIPT_CC, NULL, PY_SCRIPT_StartRemoteCmd, sizeof(ASTRO_PI_StartRemoteScript_CmdPayload_t));
+      
       CFE_MSG_Init(CFE_MSG_PTR(AstroPiApp.StatusTlm.TelemetryHeader), CFE_SB_ValueToMsgId(INITBL_GetIntConfig(INITBL_OBJ, CFG_ASTRO_PI_STATUS_TLM_TOPICID)), sizeof(ASTRO_PI_StatusTlm_t));
 
       /*
@@ -284,8 +285,8 @@ void SendStatusPkt(void)
    ** UDP Manager Data
    */
 
-   Payload->SentScriptCnt  = AstroPiApp.AstroPy.SentScriptCnt;
-   strncpy(Payload->LastSentScript, AstroPiApp.AstroPy.LastSentScript,OS_MAX_PATH_LEN); 
+   Payload->SentScriptCnt  = AstroPiApp.PyScript.SentCnt;
+   strncpy(Payload->LastSentScript, AstroPiApp.PyScript.LastSent,OS_MAX_PATH_LEN); 
        
    CFE_SB_TimeStampMsg(CFE_MSG_PTR(AstroPiApp.StatusTlm.TelemetryHeader));
    CFE_SB_TransmitMsg(CFE_MSG_PTR(AstroPiApp.StatusTlm.TelemetryHeader), true);

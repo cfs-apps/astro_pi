@@ -25,9 +25,6 @@
 <PackageFile xmlns="http://www.ccsds.org/schema/sois/seds">
   <Package name="ASTRO_PI" shortDescription="cFS Basecamp Astro Pi application">
 
-    <Define name="JMSG_CHAR_BLOCK" value="256"  shortDescription="Number of characters to process in a loop TODO: Move to TPLUG to serve as base definition" />
-    <Define name="MAX_JMSG_TEXT_STRING_LEN" value="${JMSG_CHAR_BLOCK}*2"  shortDescription="TODO: Move to TPLUG to serve as base definition" />
-
     <DataTypeSet>
     
       <!-- See jmsg_lib/eds: jmsg_usr.xml and jmsg_lib.xml for -->
@@ -37,18 +34,25 @@
       <!--**** DataTypeSet:  Entry Types ****-->
       <!--***********************************-->
 
-      <StringDataType name="ScriptString" length="${MAX_JMSG_TEXT_STRING_LEN}" shortDescription="Max length of python script string" />
             
       <!--***************************************-->
       <!--**** DataTypeSet: Command Payloads ****-->
       <!--***************************************-->
 
-      <ContainerDataType name="SendScript_CmdPayload" shortDescription="Send a python script to be executed">
+
+      <ContainerDataType name="SendLocalScript_CmdPayload">
         <EntryList>
-          <Entry name="Filename" type="BASE_TYPES/PathName" shortDescription="Full path and file name of the python script to be sent" />
-       </EntryList>
+          <Entry name="Filename" type="BASE_TYPES/PathName" shortDescription="Local path/filename of script whose contents will be sent to remote target" />
+        </EntryList>
       </ContainerDataType>
       
+      <ContainerDataType name="StartRemoteScript_CmdPayload">
+        <EntryList>
+          <Entry name="Filename" type="BASE_TYPES/PathName" shortDescription="Remote path/filename of script to be executed by remote target" />
+        </EntryList>
+      </ContainerDataType>
+      
+
       <!--*****************************************-->
       <!--**** DataTypeSet: Telemetry Payloads ****-->
       <!--*****************************************-->
@@ -62,12 +66,6 @@
         </EntryList>
       </ContainerDataType>
 
-      <ContainerDataType name="ScriptTlm_Payload" shortDescription="">
-        <EntryList>
-          <Entry name="Script" type="ScriptString"   shortDescription=""/>
-        </EntryList>
-      </ContainerDataType>
-      
       <!--**************************************-->
       <!--**** DataTypeSet: Command Packets ****-->
       <!--**************************************-->
@@ -93,15 +91,24 @@
         </ConstraintSet>
       </ContainerDataType>
 
-      <ContainerDataType name="SendScript" baseType="CommandBase" shortDescription="Send a python script to be executed">
+      <ContainerDataType name="SendLocalScript" baseType="CommandBase" shortDescription="Send contents of a local python script to be executed remotely">
         <ConstraintSet>
           <ValueConstraint entry="Sec.FunctionCode" value="${APP_C_FW/APP_BASE_CC} + 1" />
         </ConstraintSet>
         <EntryList>
-          <Entry type="SendScript_CmdPayload" name="Payload" />
+          <Entry type="SendLocalScript_CmdPayload" name="Payload" />
         </EntryList>
       </ContainerDataType>
       
+      <ContainerDataType name="StartRemoteScript" baseType="CommandBase" shortDescription="Send a python script filename to be executed remotely">
+        <ConstraintSet>
+          <ValueConstraint entry="Sec.FunctionCode" value="${APP_C_FW/APP_BASE_CC} + 2" />
+        </ConstraintSet>
+        <EntryList>
+          <Entry type="StartRemoteScript_CmdPayload" name="Payload" />
+        </EntryList>
+      </ContainerDataType>
+
       
       <!--****************************************-->
       <!--**** DataTypeSet: Telemetry Packets ****-->
@@ -110,12 +117,6 @@
       <ContainerDataType name="StatusTlm" baseType="CFE_HDR/TelemetryHeader">
         <EntryList>
           <Entry type="StatusTlm_Payload" name="Payload" />
-        </EntryList>
-      </ContainerDataType>
-     
-      <ContainerDataType name="ScriptTlm" baseType="CFE_HDR/TelemetryHeader">
-        <EntryList>
-          <Entry type="ScriptTlm_Payload" name="Payload" />
         </EntryList>
       </ContainerDataType>
      
@@ -141,13 +142,7 @@
               <GenericTypeMap name="TelemetryDataType" type="StatusTlm" />
             </GenericTypeMapSet>
           </Interface>
-          
-          <Interface name="SCRIPT_TLM" shortDescription="Software bus JMsg text telemetry interface" type="CFE_SB/Telemetry">
-            <GenericTypeMapSet>
-              <GenericTypeMap name="TelemetryDataType" type="ScriptTlm" />
-            </GenericTypeMapSet>
-          </Interface>
-          
+                    
         </RequiredInterfaceSet>
 
         <!--***************************************-->
@@ -158,13 +153,11 @@
           <VariableSet>
             <Variable type="BASE_TYPES/uint16" readOnly="true" name="CmdTopicId"        initialValue="${CFE_MISSION/ASTRO_PI_CMD_TOPICID}" />
             <Variable type="BASE_TYPES/uint16" readOnly="true" name="StatusTlmTopicId"  initialValue="${CFE_MISSION/ASTRO_PI_STATUS_TLM_TOPICID}" />
-            <Variable type="BASE_TYPES/uint16" readOnly="true" name="ScriptTlmTopicId"  initialValue="${CFE_MISSION/ASTRO_PI_SCRIPT_TLM_TOPICID}" />
           </VariableSet>
           <!-- Assign fixed numbers to the "TopicId" parameter of each interface -->
           <ParameterMapSet>
             <ParameterMap interface="CMD"         parameter="TopicId" variableRef="CmdTopicId" />
             <ParameterMap interface="STATUS_TLM"  parameter="TopicId" variableRef="StatusTlmTopicId" />
-            <ParameterMap interface="SCRIPT_TLM"  parameter="TopicId" variableRef="ScriptTlmTopicId" />
           </ParameterMapSet>
         </Implementation>
       </Component>

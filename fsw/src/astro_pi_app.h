@@ -32,7 +32,7 @@
 */
 
 #include "app_cfg.h"
-#include "astro_py.h"
+#include "py_script.h"
 
 /***********************/
 /** Macro Definitions **/
@@ -52,16 +52,6 @@
 /** Type Definitions **/
 /**********************/
 
-
-/******************************************************************************
-** Command Packets
-*/
-/* See EDS */
-
-/******************************************************************************
-** Telemetry Packets
-*/
-/* See EDS */
 
 /******************************************************************************
 ** App Class
@@ -93,7 +83,7 @@ typedef struct
    CFE_SB_MsgId_t  CmdMid;
    CFE_SB_MsgId_t  SendStatusMid;
    
-   ASTRO_PY_Class_t AstroPy;
+   PY_SCRIPT_Class_t PyScript;
 
 } ASTRO_PI_APP_Class_t;
 
