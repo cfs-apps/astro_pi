@@ -78,28 +78,27 @@ def rx_thread():
                     jmsg = datagram
                 if jmsg:
                     jmsg_str = jmsg.decode('utf-8')
-                    print(f'Received from {host} jmsg size={len(jmsg_str)}: {jmsg_str}')
+                    print(f'*****\nReceived from {host} JMSG {len(jmsg_str)}: {jmsg_str}\n')
                     process_jmsg(jmsg_str.replace("\x00", "").replace("\x01", ""))
         except socket.timeout:
             pass
+        print('*****\n\n')
         time.sleep(LOOP_DELAY)
 
 
 def process_jmsg(jmsg_str):
 
-    print(f'jmsg_str: {jmsg_str}')
     try:
         # Text following prefix is assumed to be JSON message 
-        if JMSG_TOPIC_NAME_PREFIX in jmsg_str:
+        if jmsg_str.startswith(JMSG_TOPIC_NAME_PREFIX):
             json_str = jmsg_str.replace(JMSG_TOPIC_NAME_PREFIX, "")
-            print(f'json_str: {json_str}, len: {len(json_str)}')
-            print(json_str)
-            #json_str2 = json_str.replace('\n','\\n')
-            #print(f'json_str2: {json_str2}')
-            json_dict = json.loads(json_str)
+            print(f'>>json {len(json_str)}: {json_str}\n')
+            json_str2 = json_str.replace('\n','\\n')
+            print(f'>>json2: {json_str2}\n')
+            json_dict = json.loads(json_str2)
             command = json_dict["command"]
             if command == RUN_SCRIPT_TEXT_CMD:
-                print(f'json_dict: {json_dict}')
+                print(f'>>json_dict: {json_dict}\n')
                 exec(json_dict["script-text"])
                 print("")                
             elif command == RUN_SCRIPT_FILE_CMD:
@@ -109,7 +108,7 @@ def process_jmsg(jmsg_str):
         else:
             print(f'Received JMSG not addresssed to Astro Pi. Expected {JMSG_TOPIC_NAME_PREFIX}')
     except Exception as e:
-        print(f'Astro Pi JSON processing exception: {e}')
+        print(f'Astro Pi JMSG processing exception: {e}\n')
 
 if __name__ == "__main__":
 

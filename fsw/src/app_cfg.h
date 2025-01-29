@@ -44,8 +44,8 @@
 ** 1.0 - Initial release tested with jmsg_lib 1.0 and jmsg_udp 2.0
 */
 
-#define  ASTRO_PI_APP_MAJOR_VER   1
-#define  ASTRO_PI_APP_MINOR_VER   0
+#define  ASTRO_PI_APP_MAJOR_VER   0
+#define  ASTRO_PI_APP_MINOR_VER   9
 
 
 /******************************************************************************

@@ -53,10 +53,12 @@ static void SendScriptMsg(JMSG_LIB_ExecScriptCmd_Enum_t Command, const char *Cmd
 static PY_SCRIPT_Class_t *PyScript;
 static JMSG_LIB_ExecScriptTlm_t  ExecScriptTlm;
 
-static char ScriptFileBuf[JMSG_PLATFORM_TOPIC_SCRIPT_STRING_MAX_LEN+JMSG_PLATFORM_CHAR_BLOCK]; /* Allow one extra block to be read in case file too long*/
+
+static char ReadFileBuf[JMSG_PLATFORM_CHAR_BLOCK]; 
+static char ScriptFileBuf[JMSG_PLATFORM_TOPIC_SCRIPT_STRING_MAX_LEN+JMSG_PLATFORM_CHAR_BLOCK+256]; /* Allow one extra block to be read in case file too long. Extra bytes for escaped \n */
 
 //static char TestScript[] = "from sense_hat import SenseHat\\nsense = SenseHat()\\nsense.show_message('Hello world')\\n";
-static char TestScript[] = "print('Hello World')"; //print('Hello Astro Pi')\\n
+static char TestScript[] = "print('Hello World')\\nprint('Hello Astro Pi')"; // \\nprint('Hello Astro Pi')
 
 /******************************************************************************
 ** Function: PY_SCRIPT_Constructor
@@ -130,7 +132,6 @@ bool PY_SCRIPT_SendLocalCmd(void *DataObjPtr, const CFE_MSG_Message_t *MsgPtr)
          FileBytesRead = ReadScriptFile(FileHandle);
          if (FileBytesRead >= 0)
          { 
-            OS_printf("RetStatus=%d\n",FileBytesRead);
             SendScriptMsg(JMSG_LIB_ExecScriptCmd_RUN_SCRIPT_TEXT, ScriptFileBuf, FileBytesRead);
             strncpy(PyScript->LastSent,SendLocalScriptCmd->Filename,OS_MAX_PATH_LEN);
             CFE_EVS_SendEvent(PY_SCRIPT_SEND_LOCAL_CMD_EID, CFE_EVS_EventType_INFORMATION,
@@ -225,42 +226,73 @@ static int32 ReadScriptFile(osal_id_t FileHandle)
    int32   RetStatus = -1;
    bool    ReadFile  = true;
    char    *ScriptFileBufPtr = ScriptFileBuf;
+   uint16  DeltaChars = 0;
    int32   FileBytesRead;
    uint16  TotalBytesRead = 0;
    os_err_name_t OsErrStr;
                                 
+   memset(ReadFileBuf, 0, sizeof(ReadFileBuf));
    memset(ScriptFileBuf, 0, sizeof(ScriptFileBuf));
-
+   
    while (ReadFile)
    {      
-      FileBytesRead = OS_read(FileHandle, ScriptFileBufPtr, JMSG_PLATFORM_CHAR_BLOCK);
-      OS_printf("%d: %s\n", FileBytesRead, ScriptFileBufPtr);
-      if (FileBytesRead < JMSG_PLATFORM_CHAR_BLOCK)
-      {
-         ReadFile = false;
-         if (FileBytesRead < 0)
-         {
-            OS_GetErrorName(FileBytesRead, &OsErrStr);
-            CFE_EVS_SendEvent(PY_SCRIPT_READ_FILE_EID, CFE_EVS_EventType_ERROR,
-                              "Error reading contents of script file. Status = %s", OsErrStr);            
-         }
-      }
-      
-      TotalBytesRead   += FileBytesRead;
-      ScriptFileBufPtr += FileBytesRead;
-      
-      if (TotalBytesRead > JMSG_PLATFORM_TOPIC_SCRIPT_STRING_MAX_LEN)
-      {
-         ReadFile = false;
-         CFE_EVS_SendEvent(PY_SCRIPT_READ_FILE_EID, CFE_EVS_EventType_ERROR,
-                           "Script file length greater than %d characters", JMSG_PLATFORM_TOPIC_SCRIPT_STRING_MAX_LEN);
-      }
+      FileBytesRead = OS_read(FileHandle, ReadFileBuf, JMSG_PLATFORM_CHAR_BLOCK);
 
+      if (FileBytesRead < 0)
+      {
+         ReadFile = false;
+         OS_GetErrorName(FileBytesRead, &OsErrStr);
+         CFE_EVS_SendEvent(PY_SCRIPT_READ_FILE_EID, CFE_EVS_EventType_ERROR,
+                           "Error reading contents of script file. Status = %s", OsErrStr);            
+      }
+      else
+      {
+         TotalBytesRead += FileBytesRead;
+
+         for (int i = 0; i < FileBytesRead; i++)
+         {
+            // Ignore carriage returns, 0x0D and escape linefeeds, 0x0A
+            if (ReadFileBuf[i] != '\r')
+            {
+               if (ReadFileBuf[i] != '\n')
+               {
+                   *ScriptFileBufPtr = ReadFileBuf[i]; 
+                   ScriptFileBufPtr++;
+               }
+               else
+               {
+                  *ScriptFileBufPtr = '\\'; 
+                  ScriptFileBufPtr++;
+                  *ScriptFileBufPtr = 'n'; 
+                  ScriptFileBufPtr++;               
+                  DeltaChars++;
+               }
+            }
+            else
+            {
+               DeltaChars--;
+            }
+         }
+
+         if (FileBytesRead < JMSG_PLATFORM_CHAR_BLOCK)
+         {
+            ReadFile = false;
+         }         
+
+         if (TotalBytesRead+DeltaChars > JMSG_PLATFORM_TOPIC_SCRIPT_STRING_MAX_LEN)
+         {
+            ReadFile = false;
+            CFE_EVS_SendEvent(PY_SCRIPT_READ_FILE_EID, CFE_EVS_EventType_ERROR,
+                              "Script file length greater than %d characters", JMSG_PLATFORM_TOPIC_SCRIPT_STRING_MAX_LEN);
+         }
+      } /* End if valid file read */
+      
    } /* End read file loop */
 
+   *ScriptFileBufPtr = '\0'; 
    if (TotalBytesRead <= JMSG_PLATFORM_TOPIC_SCRIPT_STRING_MAX_LEN)
    {
-      RetStatus = TotalBytesRead;
+      RetStatus = TotalBytesRead+DeltaChars+1;
    }
    
    OS_close(FileHandle);   
@@ -298,9 +330,6 @@ static void SendScriptMsg(JMSG_LIB_ExecScriptCmd_Enum_t Command, const char *Cmd
       strncpy(Payload->ScriptFile, CmdText, CmdTextLen);
       strncpy(Payload->ScriptText, ASTRO_PI_UNDEF_TLM_STR, JMSG_PLATFORM_TOPIC_SCRIPT_STRING_MAX_LEN);      
    }
-
-OS_printf("%s\n",Payload->ScriptFile);
-OS_printf("%s\n",Payload->ScriptText);
    
    CFE_SB_TimeStampMsg(CFE_MSG_PTR(ExecScriptTlm.TelemetryHeader));
    CFE_SB_TransmitMsg(CFE_MSG_PTR(ExecScriptTlm.TelemetryHeader), true);
