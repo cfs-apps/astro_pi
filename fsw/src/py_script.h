@@ -28,6 +28,8 @@
 */
 
 #include "app_cfg.h"
+#include "jmsg_platform_eds_defines.h"
+#include "jmsg_lib_eds_interface.h"
 
 /***********************/
 /** Macro Definitions **/
@@ -42,17 +44,23 @@
 #define PY_SCRIPT_SEND_LOCAL_CMD_EID    (PY_SCRIPT_BASE_EID + 1)
 #define PY_SCRIPT_SEND_TEST_CMD_EID     (PY_SCRIPT_BASE_EID + 2)
 #define PY_SCRIPT_START_REMOTE_CMD_EID  (PY_SCRIPT_BASE_EID + 3)
+#define PY_SCRIPT_CREATE_SENSE_HAT_EID  (PY_SCRIPT_BASE_EID + 4)
 
 
 /**********************/
 /** Type Definitions **/
 /**********************/
 
+
 typedef struct
 {
    
+   JMSG_LIB_TopicScriptCmd_t  TopicScriptCmd;
+   ASTRO_PI_SenseHatTlm_t     SenseHatTlm;
+   
    uint32   SentCnt;
    char     LastSent[OS_MAX_PATH_LEN];
+
 
 } PY_SCRIPT_Class_t;
 
@@ -69,7 +77,19 @@ typedef struct
 **   1. This must be called prior to any other member functions.
 **
 */
-void PY_SCRIPT_Constructor(PY_SCRIPT_Class_t *PyScriptPtr, uint32 PyScriptTlmTopicId);
+void PY_SCRIPT_Constructor(PY_SCRIPT_Class_t *PyScriptPtr, uint32 TopicScriptCmdTopicId, uint32 SenseHatTlmTopicId);
+
+
+/******************************************************************************
+** Function: PY_SCRIPT_CreateSenseHatTlm
+**
+** Notes:
+**   1. Loads Sense Hat telemetry parameters fields from the JMsg and sends
+**      the Sense Hat message. The order of parameters must match the
+**      ASTRO_PI_SenseHatTlmParams_Enum_t definition.
+**
+*/
+bool PY_SCRIPT_CreateSenseHatTlm(const CFE_MSG_Message_t *JMsgScriptTlm);
 
 
 /******************************************************************************

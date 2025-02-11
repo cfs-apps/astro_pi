@@ -51,14 +51,32 @@ static void SendScriptMsg(JMSG_LIB_ExecScriptCmd_Enum_t Command, const char *Cmd
 /**********************/
 
 static PY_SCRIPT_Class_t *PyScript;
-static JMSG_LIB_ExecScriptTlm_t  ExecScriptTlm;
-
 
 static char ReadFileBuf[JMSG_PLATFORM_CHAR_BLOCK]; 
-static char ScriptFileBuf[JMSG_PLATFORM_TOPIC_SCRIPT_STRING_MAX_LEN+JMSG_PLATFORM_CHAR_BLOCK+256]; /* Allow one extra block to be read in case file too long. Extra bytes for escaped \n */
+static char ScriptFileBuf[JMSG_PLATFORM_TOPIC_STRING_MAX_LEN+JMSG_PLATFORM_CHAR_BLOCK+256]; /* Allow one extra block to be read in case file too long. Extra bytes for escaped \n */
 
 //static char TestScript[] = "from sense_hat import SenseHat\\nsense = SenseHat()\\nsense.show_message('Hello world')\\n";
 static char TestScript[] = "print('Hello World')\\nprint('Hello Astro Pi')"; // \\nprint('Hello Astro Pi')
+
+static ASTRO_PI_SenseHatTlm_Payload_t SenseHatTlm; /* Working buffer for loads */
+static PKTUTIL_CSV_Entry_t JMsgCsvEntry[] = 
+{
+   
+   { &SenseHatTlm.RateX,       PKTUTIL_CSV_FLOAT,   PKTUTIL_CSV_FLT_LEN},
+   { &SenseHatTlm.RateY,       PKTUTIL_CSV_FLOAT,   PKTUTIL_CSV_FLT_LEN},
+   { &SenseHatTlm.RateZ,       PKTUTIL_CSV_FLOAT,   PKTUTIL_CSV_FLT_LEN},
+   { &SenseHatTlm.AccelX,      PKTUTIL_CSV_FLOAT,   PKTUTIL_CSV_FLT_LEN},
+   { &SenseHatTlm.AccelY,      PKTUTIL_CSV_FLOAT,   PKTUTIL_CSV_FLT_LEN},
+   { &SenseHatTlm.AccelZ,      PKTUTIL_CSV_FLOAT,   PKTUTIL_CSV_FLT_LEN},
+   { &SenseHatTlm.Pressure,    PKTUTIL_CSV_FLOAT,   PKTUTIL_CSV_FLT_LEN},
+   { &SenseHatTlm.Temperature, PKTUTIL_CSV_FLOAT,   PKTUTIL_CSV_FLT_LEN},
+   { &SenseHatTlm.Humidity,    PKTUTIL_CSV_FLOAT,   PKTUTIL_CSV_FLT_LEN},
+   { &SenseHatTlm.Red,         PKTUTIL_CSV_INTEGER, PKTUTIL_CSV_INT_LEN},
+   { &SenseHatTlm.Green,       PKTUTIL_CSV_INTEGER, PKTUTIL_CSV_INT_LEN},
+   { &SenseHatTlm.Blue,        PKTUTIL_CSV_INTEGER, PKTUTIL_CSV_INT_LEN},
+   { &SenseHatTlm.Clear,       PKTUTIL_CSV_INTEGER, PKTUTIL_CSV_INT_LEN}
+
+};
 
 /******************************************************************************
 ** Function: PY_SCRIPT_Constructor
@@ -69,7 +87,7 @@ static char TestScript[] = "print('Hello World')\\nprint('Hello Astro Pi')"; // 
 **   1. This must be called prior to any other member functions.
 **
 */
-void PY_SCRIPT_Constructor(PY_SCRIPT_Class_t *PyScriptPtr, uint32 ExecScriptTlmTopicId)
+void PY_SCRIPT_Constructor(PY_SCRIPT_Class_t *PyScriptPtr, uint32 TopicScriptCmdTopicId, uint32 SenseHatTlmTopicId)
 {
 
    PyScript = PyScriptPtr;
@@ -78,10 +96,54 @@ void PY_SCRIPT_Constructor(PY_SCRIPT_Class_t *PyScriptPtr, uint32 ExecScriptTlmT
 
    strcpy(PyScript->LastSent, ASTRO_PI_UNDEF_TLM_STR);
    
-   CFE_MSG_Init(CFE_MSG_PTR(ExecScriptTlm.TelemetryHeader), CFE_SB_ValueToMsgId(ExecScriptTlmTopicId),
-                sizeof(JMSG_LIB_ExecScriptTlm_t));
+   CFE_MSG_Init(CFE_MSG_PTR(PyScript->TopicScriptCmd.TelemetryHeader), CFE_SB_ValueToMsgId(TopicScriptCmdTopicId),
+                sizeof(JMSG_LIB_TopicScriptCmd_t));
 
+   CFE_MSG_Init(CFE_MSG_PTR(PyScript->SenseHatTlm.TelemetryHeader), CFE_SB_ValueToMsgId(SenseHatTlmTopicId),
+                sizeof(ASTRO_PI_SenseHatTlm_t));
+                
 } /* End PY_SCRIPT_Constructor() */
+
+
+/******************************************************************************
+** Function: PY_SCRIPT_CreateSenseHatTlm
+**
+** Notes:
+**   1. Loads Sense Hat telemetry parameters fields from the JMsg and sends
+**      the Sense Hat message. The order of parameters must match the
+**      ASTRO_PI_SenseHatTlmParams_Enum_t definition.
+**
+*/
+bool PY_SCRIPT_CreateSenseHatTlm(const CFE_MSG_Message_t *JMsgScriptTlm)
+{
+   
+   const JMSG_LIB_TopicScriptTlm_Payload_t *JMsgPayload = CMDMGR_PAYLOAD_PTR(JMsgScriptTlm, JMSG_LIB_TopicScriptTlm_t);   
+
+   bool   RetStatus = false;
+   int    CsvEntries;
+   JMSG_LIB_TopicScriptTlm_Payload_t LocalPayload;
+   
+   memcpy(&LocalPayload, JMsgPayload, sizeof(JMSG_LIB_TopicScriptTlm_Payload_t));
+
+   CsvEntries = PktUtil_ParseCsvStr(LocalPayload.ParamText, JMsgCsvEntry, ASTRO_PI_SenseHatTlmParams_Enum_t_MAX);
+   
+   if (CsvEntries == ASTRO_PI_SenseHatTlmParams_Enum_t_MAX)
+   {
+      memcpy(&PyScript->SenseHatTlm.Payload, &SenseHatTlm,  sizeof(ASTRO_PI_SenseHatTlm_Payload_t));
+      CFE_SB_TimeStampMsg(CFE_MSG_PTR(PyScript->SenseHatTlm.TelemetryHeader));
+      CFE_SB_TransmitMsg(CFE_MSG_PTR(PyScript->SenseHatTlm.TelemetryHeader), true);
+      RetStatus = true;
+   } 
+   else
+   {
+      CFE_EVS_SendEvent(PY_SCRIPT_CREATE_SENSE_HAT_EID, CFE_EVS_EventType_ERROR, 
+                        "Incorrect number of sense hat parameters. Received %d expected %d", 
+                        CsvEntries, ASTRO_PI_SenseHatTlmParams_Enum_t_MAX);         
+   }
+   
+   return RetStatus;  
+   
+} /* End PY_SCRIPT_CreateSenseHatTlm() */
 
 
 /******************************************************************************
@@ -171,7 +233,7 @@ bool PY_SCRIPT_SendLocalCmd(void *DataObjPtr, const CFE_MSG_Message_t *MsgPtr)
 bool PY_SCRIPT_SendTestCmd(void *DataObjPtr, const CFE_MSG_Message_t *MsgPtr)
 {
    
-   SendScriptMsg(JMSG_LIB_ExecScriptCmd_RUN_SCRIPT_TEXT, TestScript, JMSG_PLATFORM_TOPIC_SCRIPT_STRING_MAX_LEN);
+   SendScriptMsg(JMSG_LIB_ExecScriptCmd_RUN_SCRIPT_TEXT, TestScript, JMSG_PLATFORM_TOPIC_STRING_MAX_LEN);
    strncpy(PyScript->LastSent,"Hello World test script",OS_MAX_PATH_LEN); 
    
    CFE_EVS_SendEvent(PY_SCRIPT_SEND_TEST_CMD_EID, CFE_EVS_EventType_INFORMATION,
@@ -279,18 +341,18 @@ static int32 ReadScriptFile(osal_id_t FileHandle)
             ReadFile = false;
          }         
 
-         if (TotalBytesRead+DeltaChars > JMSG_PLATFORM_TOPIC_SCRIPT_STRING_MAX_LEN)
+         if (TotalBytesRead+DeltaChars > JMSG_PLATFORM_TOPIC_STRING_MAX_LEN)
          {
             ReadFile = false;
             CFE_EVS_SendEvent(PY_SCRIPT_READ_FILE_EID, CFE_EVS_EventType_ERROR,
-                              "Script file length greater than %d characters", JMSG_PLATFORM_TOPIC_SCRIPT_STRING_MAX_LEN);
+                              "Script file length greater than %d characters", JMSG_PLATFORM_TOPIC_STRING_MAX_LEN);
          }
       } /* End if valid file read */
       
    } /* End read file loop */
 
    *ScriptFileBufPtr = '\0'; 
-   if (TotalBytesRead <= JMSG_PLATFORM_TOPIC_SCRIPT_STRING_MAX_LEN)
+   if (TotalBytesRead <= JMSG_PLATFORM_TOPIC_STRING_MAX_LEN)
    {
       RetStatus = TotalBytesRead+DeltaChars+1;
    }
@@ -313,12 +375,12 @@ static int32 ReadScriptFile(osal_id_t FileHandle)
 static void SendScriptMsg(JMSG_LIB_ExecScriptCmd_Enum_t Command, const char *CmdText, uint16 CmdTextLen)
 {
 
-   JMSG_LIB_ExecScriptTlm_Payload_t *Payload = &ExecScriptTlm.Payload;
+   JMSG_LIB_TopicScriptCmd_Payload_t *Payload = &PyScript->TopicScriptCmd.Payload;
    
    Payload->Command = Command;
 
    memset(Payload->ScriptFile, 0, OS_MAX_PATH_LEN);
-   memset(Payload->ScriptText, 0, JMSG_PLATFORM_TOPIC_SCRIPT_STRING_MAX_LEN);
+   memset(Payload->ScriptText, 0, JMSG_PLATFORM_TOPIC_STRING_MAX_LEN);
    
    if (Command == JMSG_LIB_ExecScriptCmd_RUN_SCRIPT_TEXT)
    {
@@ -328,12 +390,13 @@ static void SendScriptMsg(JMSG_LIB_ExecScriptCmd_Enum_t Command, const char *Cmd
    else
    {
       strncpy(Payload->ScriptFile, CmdText, CmdTextLen);
-      strncpy(Payload->ScriptText, ASTRO_PI_UNDEF_TLM_STR, JMSG_PLATFORM_TOPIC_SCRIPT_STRING_MAX_LEN);      
+      strncpy(Payload->ScriptText, ASTRO_PI_UNDEF_TLM_STR, JMSG_PLATFORM_TOPIC_STRING_MAX_LEN);      
    }
    
-   CFE_SB_TimeStampMsg(CFE_MSG_PTR(ExecScriptTlm.TelemetryHeader));
-   CFE_SB_TransmitMsg(CFE_MSG_PTR(ExecScriptTlm.TelemetryHeader), true);
+   CFE_SB_TimeStampMsg(CFE_MSG_PTR(PyScript->TopicScriptCmd.TelemetryHeader));
+   CFE_SB_TransmitMsg(CFE_MSG_PTR(PyScript->TopicScriptCmd.TelemetryHeader), true);
    
    PyScript->SentCnt++;
 
 } /* End SendScriptMsg() */
+

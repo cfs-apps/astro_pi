@@ -82,6 +82,7 @@ typedef struct
    
    CFE_SB_MsgId_t  CmdMid;
    CFE_SB_MsgId_t  SendStatusMid;
+   CFE_SB_MsgId_t  JmsgTopicScriptTlmMid;
    
    PY_SCRIPT_Class_t PyScript;
 

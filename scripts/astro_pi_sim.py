@@ -13,18 +13,13 @@
     GNU Affero General Public License for more details.
 
     Purpose:
-      Provide a command and telemetry interface between the Astro Pi
-      cFS app and the Raspberry Pi python Sense HAT interface.
+      Provide an environment to test basic functionality of the 
+      Astro Pi cFS app. It processes command scripts and generates
+      ismulated telemetry. 
     
     Notes:
-      1. The goal of this script in combination with the Astro Pi cFS apps is
-         to provide enough functionality that allows students to perform the 
-         ESA's Astro Pi exercises https://astro-pi.org/
-      2. This script requires the Sense HAT package. It should be part of
-         the Raspian OS. You can manually install the package as follows: 
-         sudo apt-get install sense-hat
-      3. The Astro Pi cFS app's command and telemetry interfaces are defined
-         in astro_pi.xml
+      1. Commands scripts that required the Sense HAT hardware will 
+         generate excpetions.
 
 """
 
@@ -33,9 +28,6 @@ import socket
 import threading
 import time
 import json
-
-from sense_hat import SenseHat
-sense = SenseHat()
 
 RUN_SCRIPT_TEXT_CMD = 1
 RUN_SCRIPT_FILE_CMD = 2
@@ -66,8 +58,8 @@ def tx_thread():
     
     i = 1
     while True:
-        parameters = read_tlm_parameters()
-        jmsg = JMSG_TOPIC_SCRIPT_TLM_NAME + f'{"name": "RPI-0", "seq-count": {i}, "date-time": "00/00/0000 00:00:00",  "parameters": {payload}"}'
+        cont = input ("Enter to send")
+        jmsg = JMSG_TOPIC_SCRIPT_TLM_NAME + '{"name": "null", "seq-count": 0, "date-time": "00/00/0000 00:00:00",  "parameters": "rate-x,1.0,rate-y,2.0,rate-z,3.0,accel-x,4.0,accel-y,5.0,accel-z,6.0,pressure,7.0,temperature,8.0,humidity,9.0,red,1,green,2,blue,3,clear,4"}'
         print(f'>>> Sending message {jmsg}')
         sock.sendto(jmsg.encode('ASCII'), (CFS_IP_ADDR, CFS_APP_PORT))
         time.sleep(TX_LOOP_DELAY)
@@ -100,7 +92,7 @@ def rx_thread():
         time.sleep(RX_LOOP_DELAY)
 
 
-def process_jmsg_cmd(jmsg_str):
+def process_jmsg(jmsg_str):
 
     try:
         # Text following prefix is assumed to be JSON message 
@@ -124,41 +116,6 @@ def process_jmsg_cmd(jmsg_str):
     except Exception as e:
         print(f'Astro Pi JMSG processing exception: {e}\n')
 
-
-def read_tlm_parameters():
-    """
-    Gain is simply the sensitivity of the sensor. It can have values of 1, 4, 16 or 60.
-    Integration cycles are the time that the the sensor takes between measuring the light. 
-    Each integration cycle is 2.4 milliseconds long, and the number of integration cycles can be any number between 1 and 256.
-    """
-    
-    sense.clear()
-
-    orientation = sense.get_orientation()
-    roll  = orientation["roll"]
-    pitch = orientation["pitch"]
-    yaw   = orientation["yaw"]
-
-    acceleration = sense.get_accelerometer_raw()
-    accel_x = acceleration['x']
-    accel_y = acceleration['y']
-    accel_z = acceleration['z']
-
-    x=round(x, 0)
-    y=round(y, 0)
-    z=round(z, 0)
-    
-    pressure    = sense.get_pressure()
-    temperature = sense.get_temperature()
-    humidity    = sense.get_humidity()
-    
-    red, green, blue, clear = sense.colour.colour
-
-    parameters = f"rate-x,{roll},rate-y,{pitch},rate-z,{yaw},accel-x,{accel_x},accel-y,{accel_y},accel-z,{accel_z},pressure,{pressure},temperature,{temperature},humidity,{humidity},red,{red},green,{green},blue,{blue},clear,{clear}"
-
-    return payload
-
-          
 if __name__ == "__main__":
 
     rx = threading.Thread(target=rx_thread)

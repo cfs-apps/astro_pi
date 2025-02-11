@@ -33,7 +33,25 @@
       <!--***********************************-->
       <!--**** DataTypeSet:  Entry Types ****-->
       <!--***********************************-->
-
+      
+      <EnumeratedDataType name="SenseHatTlmParams" shortDescription="Define telemetry parameters. These are indices, values must start at 0 increment">
+        <IntegerDataEncoding sizeInBits="16" encoding="unsigned" />
+        <EnumerationList>
+          <Enumeration label="RATE_X"      value="0"    shortDescription="" />
+          <Enumeration label="RATE_Y"      value="1"    shortDescription="" />
+          <Enumeration label="RATE_Z"      value="2"    shortDescription="" />
+          <Enumeration label="ACCEL_X"     value="3"    shortDescription="" />
+          <Enumeration label="ACCEL_Y"     value="4"    shortDescription="" />
+          <Enumeration label="ACCEL_Z"     value="5"    shortDescription="" />
+          <Enumeration label="PRESSURE"    value="6"    shortDescription="" />
+          <Enumeration label="TEMPERATURE" value="7"    shortDescription="" />
+          <Enumeration label="HUMIDITY"    value="8"    shortDescription="" />
+          <Enumeration label="RED"         value="9"    shortDescription="" />
+          <Enumeration label="GREEN"       value="10"   shortDescription="" />
+          <Enumeration label="BLUE"        value="11"   shortDescription="" />
+          <Enumeration label="CLEAR"       value="12"   shortDescription="" />
+        </EnumerationList>
+      </EnumeratedDataType>
             
       <!--***************************************-->
       <!--**** DataTypeSet: Command Payloads ****-->
@@ -65,7 +83,25 @@
           <Entry name="LastSentScript"  type="BASE_TYPES/PathName" />
         </EntryList>
       </ContainerDataType>
-
+      
+      <ContainerDataType name="SenseHatTlm_Payload" shortDescription="">
+        <EntryList>
+          <Entry name="RateX"       type="BASE_TYPES/float"   />
+          <Entry name="RateY"       type="BASE_TYPES/float"   />
+          <Entry name="RateZ"       type="BASE_TYPES/float"   />
+          <Entry name="AccelX"      type="BASE_TYPES/float"   />
+          <Entry name="AccelY"      type="BASE_TYPES/float"   />
+          <Entry name="AccelZ"      type="BASE_TYPES/float"   />
+          <Entry name="Pressure"    type="BASE_TYPES/float"   />
+          <Entry name="Temperature" type="BASE_TYPES/float"   />
+          <Entry name="Humidity"    type="BASE_TYPES/float"   />
+          <Entry name="Red"         type="BASE_TYPES/uint16"  />
+          <Entry name="Green"       type="BASE_TYPES/uint16"  />
+          <Entry name="Blue"        type="BASE_TYPES/uint16"  />
+          <Entry name="Clear"       type="BASE_TYPES/uint16"  />
+        </EntryList>
+      </ContainerDataType>
+      
       <!--**************************************-->
       <!--**** DataTypeSet: Command Packets ****-->
       <!--**************************************-->
@@ -119,7 +155,13 @@
           <Entry type="StatusTlm_Payload" name="Payload" />
         </EntryList>
       </ContainerDataType>
-     
+
+      <ContainerDataType name="SenseHatTlm" baseType="CFE_HDR/TelemetryHeader">
+        <EntryList>
+          <Entry type="SenseHatTlm_Payload" name="Payload" />
+        </EntryList>
+      </ContainerDataType>
+      
     </DataTypeSet>
     
     <ComponentSet>
@@ -142,7 +184,13 @@
               <GenericTypeMap name="TelemetryDataType" type="StatusTlm" />
             </GenericTypeMapSet>
           </Interface>
-                    
+          
+          <Interface name="SENSE_HAT_TLM" shortDescription="Software bus housekeeping telemetry interface" type="CFE_SB/Telemetry">
+            <GenericTypeMapSet>
+              <GenericTypeMap name="TelemetryDataType" type="SenseHatTlm" />
+            </GenericTypeMapSet>
+          </Interface>
+          
         </RequiredInterfaceSet>
 
         <!--***************************************-->
@@ -151,13 +199,15 @@
 
         <Implementation>
           <VariableSet>
-            <Variable type="BASE_TYPES/uint16" readOnly="true" name="CmdTopicId"        initialValue="${CFE_MISSION/ASTRO_PI_CMD_TOPICID}" />
-            <Variable type="BASE_TYPES/uint16" readOnly="true" name="StatusTlmTopicId"  initialValue="${CFE_MISSION/ASTRO_PI_STATUS_TLM_TOPICID}" />
+            <Variable type="BASE_TYPES/uint16" readOnly="true" name="CmdTopicId"          initialValue="${CFE_MISSION/ASTRO_PI_CMD_TOPICID}" />
+            <Variable type="BASE_TYPES/uint16" readOnly="true" name="StatusTlmTopicId"    initialValue="${CFE_MISSION/ASTRO_PI_STATUS_TLM_TOPICID}" />
+            <Variable type="BASE_TYPES/uint16" readOnly="true" name="SenseHatTlmTopicId"  initialValue="${CFE_MISSION/ASTRO_PI_SENSE_HAT_TLM_TOPICID}" />
           </VariableSet>
           <!-- Assign fixed numbers to the "TopicId" parameter of each interface -->
           <ParameterMapSet>
-            <ParameterMap interface="CMD"         parameter="TopicId" variableRef="CmdTopicId" />
-            <ParameterMap interface="STATUS_TLM"  parameter="TopicId" variableRef="StatusTlmTopicId" />
+            <ParameterMap interface="CMD"           parameter="TopicId" variableRef="CmdTopicId" />
+            <ParameterMap interface="STATUS_TLM"    parameter="TopicId" variableRef="StatusTlmTopicId" />
+            <ParameterMap interface="SENSE_HAT_TLM" parameter="TopicId" variableRef="SenseHatTlmTopicId" />
           </ParameterMapSet>
         </Implementation>
       </Component>
