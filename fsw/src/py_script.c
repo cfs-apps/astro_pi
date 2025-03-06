@@ -109,21 +109,23 @@ void PY_SCRIPT_Constructor(PY_SCRIPT_Class_t *PyScriptPtr, uint32 TopicScriptCmd
 ** Function: PY_SCRIPT_CreateSenseHatTlm
 **
 ** Notes:
-**   1. Loads Sense Hat telemetry parameters fields from the JMsg and sends
-**      the Sense Hat message. The order of parameters must match the
+**   1. Loads Sense Hat telemetry parameter fields from the JMSG and sends
+**      the Sense Hat message. The parameter order must match the
 **      ASTRO_PI_SenseHatTlmParams_Enum_t definition.
+**   2. The LocalPayload variable is needed because PktUtil_ParseCsvStr()
+**      modifies the CSV parameter text.
 **
 */
-bool PY_SCRIPT_CreateSenseHatTlm(const CFE_MSG_Message_t *JMsgScriptTlm)
+bool PY_SCRIPT_CreateSenseHatTlm(const CFE_MSG_Message_t *JMsgCsvTlm)
 {
    
-   const JMSG_LIB_TopicScriptTlm_Payload_t *JMsgPayload = CMDMGR_PAYLOAD_PTR(JMsgScriptTlm, JMSG_LIB_TopicScriptTlm_t);   
+   const JMSG_LIB_TopicCsvTlm_Payload_t *JMsgPayload = CMDMGR_PAYLOAD_PTR(JMsgCsvTlm, JMSG_LIB_TopicCsvTlm_t);   
 
    bool   RetStatus = false;
    int    CsvEntries;
-   JMSG_LIB_TopicScriptTlm_Payload_t LocalPayload;
+   JMSG_LIB_TopicCsvTlm_Payload_t LocalPayload;
    
-   memcpy(&LocalPayload, JMsgPayload, sizeof(JMSG_LIB_TopicScriptTlm_Payload_t));
+   memcpy(&LocalPayload, JMsgPayload, sizeof(JMSG_LIB_TopicCsvTlm_Payload_t));
 
    CsvEntries = PktUtil_ParseCsvStr(LocalPayload.ParamText, JMsgCsvEntry, ASTRO_PI_SenseHatTlmParams_Enum_t_MAX);
    
@@ -133,6 +135,7 @@ bool PY_SCRIPT_CreateSenseHatTlm(const CFE_MSG_Message_t *JMsgScriptTlm)
       CFE_SB_TimeStampMsg(CFE_MSG_PTR(PyScript->SenseHatTlm.TelemetryHeader));
       CFE_SB_TransmitMsg(CFE_MSG_PTR(PyScript->SenseHatTlm.TelemetryHeader), true);
       RetStatus = true;
+      OS_printf("Sent sense hat telemetry\n");
    } 
    else
    {
@@ -369,7 +372,7 @@ static int32 ReadScriptFile(osal_id_t FileHandle)
 **
 ** Notes:
 **   1. Loads script message fields and sets unused fields to defaults 
-**   2. Assume valid Command passed and SB calls are successful
+**   2. Assume valid command passed and SB calls are successful
 **
 */
 static void SendScriptMsg(JMSG_LIB_ExecScriptCmd_Enum_t Command, const char *CmdText, uint16 CmdTextLen)

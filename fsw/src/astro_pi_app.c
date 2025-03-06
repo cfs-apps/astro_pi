@@ -174,9 +174,9 @@ static int32 InitApp(void)
       PY_SCRIPT_Constructor(PY_SCRIPT_OBJ, INITBL_GetIntConfig(INITBL_OBJ, CFG_JMSG_LIB_TOPIC_SCRIPT_CMD_TOPICID),
                             INITBL_GetIntConfig(INITBL_OBJ, CFG_ASTRO_PI_SENSE_HAT_TLM_TOPICID));
 
-      AstroPiApp.CmdMid                = CFE_SB_ValueToMsgId(INITBL_GetIntConfig(INITBL_OBJ, CFG_ASTRO_PI_CMD_TOPICID));
-      AstroPiApp.SendStatusMid         = CFE_SB_ValueToMsgId(INITBL_GetIntConfig(INITBL_OBJ, CFG_SEND_STATUS_TLM_TOPICID));
-      AstroPiApp.JmsgTopicScriptTlmMid = CFE_SB_ValueToMsgId(INITBL_GetIntConfig(INITBL_OBJ, JMSG_LIB_TOPIC_SCRIPT_TLM_TOPICID));
+      AstroPiApp.CmdMid             = CFE_SB_ValueToMsgId(INITBL_GetIntConfig(INITBL_OBJ, CFG_ASTRO_PI_CMD_TOPICID));
+      AstroPiApp.SendStatusMid      = CFE_SB_ValueToMsgId(INITBL_GetIntConfig(INITBL_OBJ, CFG_SEND_STATUS_TLM_TOPICID));
+      AstroPiApp.JmsgTopicCsvTlmMid = CFE_SB_ValueToMsgId(INITBL_GetIntConfig(INITBL_OBJ, JMSG_LIB_TOPIC_CSV_TLM_TOPICID));
       
       /*
       ** Initialize app level interfaces
@@ -185,7 +185,7 @@ static int32 InitApp(void)
       CFE_SB_CreatePipe(&AstroPiApp.CmdPipe, INITBL_GetIntConfig(INITBL_OBJ, CFG_CMD_PIPE_DEPTH), INITBL_GetStrConfig(INITBL_OBJ, CFG_CMD_PIPE_NAME));  
       CFE_SB_Subscribe(AstroPiApp.CmdMid, AstroPiApp.CmdPipe);
       CFE_SB_Subscribe(AstroPiApp.SendStatusMid, AstroPiApp.CmdPipe);
-      CFE_SB_Subscribe(AstroPiApp.JmsgTopicScriptTlmMid, AstroPiApp.CmdPipe);
+      CFE_SB_Subscribe(AstroPiApp.JmsgTopicCsvTlmMid, AstroPiApp.CmdPipe);
 
       CMDMGR_Constructor(CMDMGR_OBJ);
       CMDMGR_RegisterFunc(CMDMGR_OBJ, ASTRO_PI_NOOP_CC,  NULL, ASTRO_PI_APP_NoOpCmd,     0);
@@ -247,7 +247,7 @@ static int32 ProcessCommands(void)
          {   
             SendStatusPkt();
          }
-         else if (CFE_SB_MsgId_Equal(MsgId, AstroPiApp.JmsgTopicScriptTlmMid))
+         else if (CFE_SB_MsgId_Equal(MsgId, AstroPiApp.JmsgTopicCsvTlmMid))
          {   
             PY_SCRIPT_CreateSenseHatTlm(&SbBufPtr->Msg);
          }

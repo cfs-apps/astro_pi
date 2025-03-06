@@ -19,7 +19,7 @@
     
     Notes:
       1. Commands scripts that required the Sense HAT hardware will 
-         generate excpetions.
+         generate exceptions.
 
 """
 
@@ -45,7 +45,7 @@ TX_LOOP_DELAY = config.getint('APP','TX_LOOP_DELAY')
 
 JMSG_MAX_LEN = config.getint('JMSG','JMSG_MAX_LEN')
 JMSG_TOPIC_SCRIPT_CMD_NAME = config.get('JMSG','JMSG_TOPIC_SCRIPT_CMD_NAME')
-JMSG_TOPIC_SCRIPT_TLM_NAME = config.get('JMSG','JMSG_TOPIC_SCRIPT_TLM_NAME')
+JMSG_TOPIC_CSV_TLM_NAME = config.get('JMSG','JMSG_TOPIC_CSV_TLM_NAME')
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 CFS_IP_ADDR  = config.get('NETWORK','CFS_IP_ADDR')
@@ -59,7 +59,7 @@ def tx_thread():
     i = 1
     while True:
         cont = input ("Enter to send")
-        jmsg = JMSG_TOPIC_SCRIPT_TLM_NAME + '{"name": "null", "seq-count": 0, "date-time": "00/00/0000 00:00:00",  "parameters": "rate-x,1.0,rate-y,2.0,rate-z,3.0,accel-x,4.0,accel-y,5.0,accel-z,6.0,pressure,7.0,temperature,8.0,humidity,9.0,red,1,green,2,blue,3,clear,4"}'
+        jmsg = JMSG_TOPIC_CSV_TLM_NAME + '{"name": "null", "seq-count": 0, "date-time": "00/00/0000 00:00:00",  "parameters": "rate-x,1.0,rate-y,2.0,rate-z,3.0,accel-x,4.0,accel-y,5.0,accel-z,6.0,pressure,7.0,temperature,8.0,humidity,9.0,red,1,green,2,blue,3,clear,4"}'
         print(f'>>> Sending message {jmsg}')
         sock.sendto(jmsg.encode('ASCII'), (CFS_IP_ADDR, CFS_APP_PORT))
         time.sleep(TX_LOOP_DELAY)
@@ -85,7 +85,7 @@ def rx_thread():
                 if jmsg:
                     jmsg_str = jmsg.decode('utf-8')
                     print(f'*****\nReceived from {host} JMSG {len(jmsg_str)}: {jmsg_str}\n')
-                    process_jmsg_cmd(jmsg_str.replace("\x00", "").replace("\x01", ""))
+                    process_jmsg(jmsg_str.replace("\x00", "").replace("\x01", ""))
         except socket.timeout:
             pass
         print('*****\n\n')
@@ -112,7 +112,7 @@ def process_jmsg(jmsg_str):
             else:
                 print(f'Received JMSG with invalid command {command}')
         else:
-            print(f'Received JMSG not addresssed to Astro Pi. Expected {JMSG_TOPIC_NAME_PREFIX}')
+            print(f'Received JMSG not addressed to Astro Pi. Expected {JMSG_TOPIC_SCRIPT_CMD_NAME}')
     except Exception as e:
         print(f'Astro Pi JMSG processing exception: {e}\n')
 
