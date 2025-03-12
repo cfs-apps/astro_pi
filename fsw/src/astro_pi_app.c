@@ -191,7 +191,7 @@ static int32 InitApp(void)
       CMDMGR_RegisterFunc(CMDMGR_OBJ, ASTRO_PI_NOOP_CC,  NULL, ASTRO_PI_APP_NoOpCmd,     0);
       CMDMGR_RegisterFunc(CMDMGR_OBJ, ASTRO_PI_RESET_CC, NULL, ASTRO_PI_APP_ResetAppCmd, 0);
       
-      CMDMGR_RegisterFunc(CMDMGR_OBJ, ASTRO_PI_SEND_TEST_SCRIPT_CC,    NULL, PY_SCRIPT_SendTestCmd,    0);
+      CMDMGR_RegisterFunc(CMDMGR_OBJ, ASTRO_PI_SEND_TEST_SCRIPT_CC,    NULL, PY_SCRIPT_SendTestCmd,    sizeof(ASTRO_PI_SendTestScript_CmdPayload_t));
       CMDMGR_RegisterFunc(CMDMGR_OBJ, ASTRO_PI_SEND_LOCAL_SCRIPT_CC,   NULL, PY_SCRIPT_SendLocalCmd,   sizeof(ASTRO_PI_SendLocalScript_CmdPayload_t));
       CMDMGR_RegisterFunc(CMDMGR_OBJ, ASTRO_PI_START_REMOTE_SCRIPT_CC, NULL, PY_SCRIPT_StartRemoteCmd, sizeof(ASTRO_PI_StartRemoteScript_CmdPayload_t));
       

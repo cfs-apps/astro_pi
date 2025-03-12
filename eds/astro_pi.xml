@@ -52,11 +52,24 @@
           <Enumeration label="CLEAR"       value="12"   shortDescription="" />
         </EnumerationList>
       </EnumeratedDataType>
+
+      <EnumeratedDataType name="TestScript" shortDescription="Hardcoded python test scripts">
+        <IntegerDataEncoding sizeInBits="16" encoding="unsigned" />
+        <EnumerationList>
+          <Enumeration label="PRINT_HELLO"   value="1"    shortDescription="Print 'Hello World' in terminal window" />
+          <Enumeration label="DISPLAY_HELLO" value="2"    shortDescription="Display 'Hello World' on the SenseHat" />
+        </EnumerationList>
+      </EnumeratedDataType>
             
       <!--***************************************-->
       <!--**** DataTypeSet: Command Payloads ****-->
       <!--***************************************-->
-
+     
+      <ContainerDataType name="SendTestScript_CmdPayload">
+        <EntryList>
+          <Entry name="Script" type="TestScript" shortDescription="Hardcoded test script" />
+        </EntryList>
+      </ContainerDataType>
 
       <ContainerDataType name="SendLocalScript_CmdPayload">
         <EntryList>
@@ -125,7 +138,9 @@
         <ConstraintSet>
           <ValueConstraint entry="Sec.FunctionCode" value="${APP_C_FW/APP_BASE_CC} + 0" />
         </ConstraintSet>
-      </ContainerDataType>
+        <EntryList>
+          <Entry type="SendTestScript_CmdPayload" name="Payload" />
+        </EntryList>     </ContainerDataType>
 
       <ContainerDataType name="SendLocalScript" baseType="CommandBase" shortDescription="Send contents of a local python script to be executed remotely">
         <ConstraintSet>

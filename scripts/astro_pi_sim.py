@@ -59,7 +59,7 @@ def tx_thread():
     i = 1
     while True:
         cont = input ("Enter to send")
-        jmsg = JMSG_TOPIC_CSV_TLM_NAME + '{"name": "null", "seq-count": 0, "date-time": "00/00/0000 00:00:00",  "parameters": "rate-x,1.0,rate-y,2.0,rate-z,3.0,accel-x,4.0,accel-y,5.0,accel-z,6.0,pressure,7.0,temperature,8.0,humidity,9.0,red,1,green,2,blue,3,clear,4"}'
+        jmsg = JMSG_TOPIC_CSV_TLM_NAME + '{"name": "null", "seq-count": %d, "date-time": "00/00/0000 00:00:00",  "parameters": "rate-x,1.0,rate-y,2.0,rate-z,3.0,accel-x,4.0,accel-y,5.0,accel-z,6.0,pressure,7.0,temperature,8.0,humidity,9.0,red,%d,green,%d,blue,%d,clear,%d"}' % (i,i,i+1,i+2,i+3)
         print(f'>>> Sending message {jmsg}')
         sock.sendto(jmsg.encode('ASCII'), (CFS_IP_ADDR, CFS_APP_PORT))
         time.sleep(TX_LOOP_DELAY)

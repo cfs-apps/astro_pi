@@ -55,8 +55,8 @@ static PY_SCRIPT_Class_t *PyScript;
 static char ReadFileBuf[JMSG_PLATFORM_CHAR_BLOCK]; 
 static char ScriptFileBuf[JMSG_PLATFORM_TOPIC_STRING_MAX_LEN+JMSG_PLATFORM_CHAR_BLOCK+256]; /* Allow one extra block to be read in case file too long. Extra bytes for escaped \n */
 
-//static char TestScript[] = "from sense_hat import SenseHat\\nsense = SenseHat()\\nsense.show_message('Hello world')\\n";
-static char TestScript[] = "print('Hello World')\\nprint('Hello Astro Pi')"; // \\nprint('Hello Astro Pi')
+static char DisplayHelloScript[] = "from sense_hat import SenseHat\\nsense = SenseHat()\\nsense.show_message('Hello world')\\n";
+static char PrintHelloScript[] = "print('Hello World')\\nprint('Hello Astro Pi')"; // \\nprint('Hello Astro Pi')
 
 static ASTRO_PI_SenseHatTlm_Payload_t SenseHatTlm; /* Working buffer for loads */
 static PKTUTIL_CSV_Entry_t JMsgCsvEntry[] = 
@@ -235,9 +235,18 @@ bool PY_SCRIPT_SendLocalCmd(void *DataObjPtr, const CFE_MSG_Message_t *MsgPtr)
 */
 bool PY_SCRIPT_SendTestCmd(void *DataObjPtr, const CFE_MSG_Message_t *MsgPtr)
 {
-   
-   SendScriptMsg(JMSG_LIB_ExecScriptCmd_RUN_SCRIPT_TEXT, TestScript, JMSG_PLATFORM_TOPIC_STRING_MAX_LEN);
-   strncpy(PyScript->LastSent,"Hello World test script",OS_MAX_PATH_LEN); 
+   const ASTRO_PI_SendTestScript_CmdPayload_t *SendTestScriptCmd = CMDMGR_PAYLOAD_PTR(MsgPtr, ASTRO_PI_SendTestScript_t);
+
+   if (SendTestScriptCmd->Script == ASTRO_PI_TestScript_PRINT_HELLO)
+   {
+      SendScriptMsg(JMSG_LIB_ExecScriptCmd_RUN_SCRIPT_TEXT, PrintHelloScript, JMSG_PLATFORM_TOPIC_STRING_MAX_LEN);
+      strncpy(PyScript->LastSent,"Print Hello World test script",OS_MAX_PATH_LEN); 
+   }
+   else
+   {
+      SendScriptMsg(JMSG_LIB_ExecScriptCmd_RUN_SCRIPT_TEXT, DisplayHelloScript, JMSG_PLATFORM_TOPIC_STRING_MAX_LEN);
+      strncpy(PyScript->LastSent,"Display Hello World test script",OS_MAX_PATH_LEN); 
+   }
    
    CFE_EVS_SendEvent(PY_SCRIPT_SEND_TEST_CMD_EID, CFE_EVS_EventType_INFORMATION,
                      "Sucessfully sent %s", PyScript->LastSent);
