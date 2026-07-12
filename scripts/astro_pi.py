@@ -53,7 +53,7 @@ TX_LOOP_DELAY = config.getint('APP','TX_LOOP_DELAY')
 
 JMSG_MAX_LEN = config.getint('JMSG','JMSG_MAX_LEN')
 JMSG_TOPIC_SCRIPT_CMD_NAME = config.get('JMSG','JMSG_TOPIC_SCRIPT_CMD_NAME')
-JMSG_TOPIC_SCRIPT_TLM_NAME = config.get('JMSG','JMSG_TOPIC_SCRIPT_TLM_NAME')
+JMSG_TOPIC_CSV_TLM_NAME    = config.get('JMSG','JMSG_TOPIC_CSV_TLM_NAME')
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 CFS_IP_ADDR  = config.get('NETWORK','CFS_IP_ADDR')
@@ -66,8 +66,8 @@ def tx_thread():
     
     i = 1
     while True:
-        parameters = read_tlm_parameters()
-        jmsg = JMSG_TOPIC_SCRIPT_TLM_NAME + f'{"name": "RPI-0", "seq-count": {i}, "date-time": "00/00/0000 00:00:00",  "parameters": {payload}"}'
+        payload = read_tlm_parameters()
+        jmsg = JMSG_TOPIC_CSV_TLM_NAME + '{"name": "RPI-0", "seq-count": %d, "date-time": "00/00/0000 00:00:00",  "parameters": "%s"}' % (i,payload)
         print(f'>>> Sending message {jmsg}')
         sock.sendto(jmsg.encode('ASCII'), (CFS_IP_ADDR, CFS_APP_PORT))
         time.sleep(TX_LOOP_DELAY)
@@ -144,9 +144,9 @@ def read_tlm_parameters():
     accel_y = acceleration['y']
     accel_z = acceleration['z']
 
-    x=round(x, 0)
-    y=round(y, 0)
-    z=round(z, 0)
+    x=round(accel_x, 0)
+    y=round(accel_y, 0)
+    z=round(accel_z, 0)
     
     pressure    = sense.get_pressure()
     temperature = sense.get_temperature()
